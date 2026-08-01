@@ -3,6 +3,8 @@
   "python.analysis.typeCheckingMode": "standard",
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.extraPaths": [
+    "${workspaceFolder}/.venv/Lib/site-packages",
+    "${workspaceFolder}/.venv/lib/python3.11/site-packages",
     "${workspaceFolder}/scenarios/unified",
     "${workspaceFolder}/scenarios/split/backend",
     "${workspaceFolder}/scenarios/split/frontend"
