@@ -4,7 +4,7 @@ from typing import cast
 
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
-from redis.exceptions import RedisError
+from redis import RedisError
 
 from .redis_client import get_redis, namespaced
 
