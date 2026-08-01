@@ -1,0 +1,81 @@
+bundle:
+  name: once-upon-a-runtime
+
+variables:
+  app_prefix:
+    description: Globally unique lowercase prefix within the workspace
+    default: once-upon-a-runtime
+  redis_secret_scope:
+    description: Environment-specific Databricks secret scope for Redis connection identity
+    default: once-upon-runtime-dev
+
+resources:
+  apps:
+    unified_app:
+      name: ${var.app_prefix}-unified
+      description: React and FastAPI in one Databricks App runtime
+      source_code_path: ./scenarios/unified
+      permissions:
+        - level: CAN_USE
+          group_name: users
+
+    split_backend:
+      name: ${var.app_prefix}-api
+      description: Split FastAPI backend
+      source_code_path: ./scenarios/split/backend
+      resources:
+        - name: redis-host
+          description: Azure Managed Redis TLS hostname
+          secret:
+            scope: ${var.redis_secret_scope}
+            key: redis-host
+            permission: READ
+        - name: redis-tenant-id
+          description: Microsoft Entra tenant for Redis workload identity
+          secret:
+            scope: ${var.redis_secret_scope}
+            key: redis-tenant-id
+            permission: READ
+        - name: redis-client-id
+          description: Microsoft Entra application client ID authorized in Redis
+          secret:
+            scope: ${var.redis_secret_scope}
+            key: redis-client-id
+            permission: READ
+        - name: redis-client-secret
+          description: Microsoft Entra client credential for Redis
+          secret:
+            scope: ${var.redis_secret_scope}
+            key: redis-client-secret
+            permission: READ
+
+    split_frontend:
+      name: ${var.app_prefix}-web
+      description: Split React frontend and same-origin BFF proxy
+      source_code_path: ./scenarios/split/frontend
+      resources:
+        - name: backend-app
+          description: FastAPI target used by the frontend proxy
+          app:
+            name: ${resources.apps.split_backend.name}
+            permission: CAN_USE
+      permissions:
+        - level: CAN_USE
+          group_name: users
+
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      # Override with BUNDLE_VAR_app_prefix for parallel developer deployments.
+      app_prefix: runtime-dev
+      redis_secret_scope: once-upon-runtime-dev
+
+  prod:
+    mode: production
+    variables:
+      app_prefix: once-upon-a-runtime
+      redis_secret_scope: once-upon-runtime-prod
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}

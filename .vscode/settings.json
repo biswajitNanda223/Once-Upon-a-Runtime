@@ -1,0 +1,21 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.analysis.typeCheckingMode": "standard",
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/scenarios/unified",
+    "${workspaceFolder}/scenarios/split/backend",
+    "${workspaceFolder}/scenarios/split/frontend"
+  ],
+  "python.testing.pytestEnabled": false,
+  "typescript.tsdk": "scenarios/unified/node_modules/typescript/lib",
+  "yaml.schemas": {
+    "https://json.schemastore.org/gitlab-ci.json": ".gitlab-ci.yml",
+    "${workspaceFolder}/.databricks/bundle-schema.json": "databricks.yml"
+  },
+  "yaml.customTags": [],
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true
+  }
+}

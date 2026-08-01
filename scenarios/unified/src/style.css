@@ -1,0 +1,2 @@
+:root{font-family:Inter,system-ui,sans-serif;color:#10212b;background:#eaf2ee}body{margin:0}main{max-width:760px;margin:12vh auto;padding:48px}h1{font-size:clamp(2.5rem,7vw,5rem);line-height:.95;margin:.2em 0}.eyebrow{letter-spacing:.2em;color:#087f5b}section{display:grid;gap:10px;background:white;border-left:6px solid #ff6b35;padding:24px;box-shadow:0 18px 50px #173b2c22}span{color:#52646e}code{color:#087f5b}
+

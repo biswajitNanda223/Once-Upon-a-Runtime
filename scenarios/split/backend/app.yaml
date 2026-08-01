@@ -1,0 +1,18 @@
+command: ["uvicorn", "app.main:app"]
+env:
+  - name: APP_PATTERN
+    value: split-backend
+  - name: REDIS_HOST
+    valueFrom: redis-host
+  - name: AZURE_TENANT_ID
+    valueFrom: redis-tenant-id
+  - name: AZURE_CLIENT_ID
+    valueFrom: redis-client-id
+  - name: AZURE_CLIENT_SECRET
+    valueFrom: redis-client-secret
+  - name: REDIS_PORT
+    value: "10000"
+  - name: REDIS_KEY_PREFIX
+    value: "runtime:"
+  - name: REDIS_DEFAULT_TTL_SECONDS
+    value: "300"

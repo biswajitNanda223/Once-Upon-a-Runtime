@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/vscode-pyright/schemas/pyrightconfig.schema.json",
+  "include": [
+    "scenarios/unified/server",
+    "scenarios/split/backend/app",
+    "scenarios/split/frontend/proxy.py"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/static",
+    "**/__pycache__"
+  ],
+  "typeCheckingMode": "standard",
+  "pythonVersion": "3.11",
+  "executionEnvironments": [
+    {
+      "root": "scenarios/unified"
+    },
+    {
+      "root": "scenarios/split/backend"
+    },
+    {
+      "root": "scenarios/split/frontend"
+    }
+  ]
+}

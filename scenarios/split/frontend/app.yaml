@@ -1,0 +1,6 @@
+command: ["uvicorn", "proxy:app"]
+env:
+  - name: BACKEND_APP_NAME
+    valueFrom: backend-app
+  - name: PROXY_AUTH_MODE
+    value: app

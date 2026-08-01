@@ -1,0 +1,5 @@
+command: ["uvicorn", "server.main:app"]
+env:
+  - name: APP_PATTERN
+    value: unified
+

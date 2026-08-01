@@ -1,0 +1,169 @@
+include:
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Dependency-Scanning.gitlab-ci.yml
+  - template: Jobs/Container-Scanning.gitlab-ci.yml
+  - template: DAST.gitlab-ci.yml
+
+stages: [validate, test, build, security, deploy_dev, dast, deploy_prod]
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  npm_config_cache: "$CI_PROJECT_DIR/.cache/npm"
+  DATABRICKS_CLI_VERSION: "0.299.1"
+  DOCKER_TLS_CERTDIR: "/certs"
+  UNIFIED_IMAGE: "$CI_REGISTRY_IMAGE/unified:$CI_COMMIT_SHA"
+  SPLIT_FRONTEND_IMAGE: "$CI_REGISTRY_IMAGE/split-frontend:$CI_COMMIT_SHA"
+  SPLIT_BACKEND_IMAGE: "$CI_REGISTRY_IMAGE/split-backend:$CI_COMMIT_SHA"
+  SAST_EXCLUDED_PATHS: "node_modules,static,dist"
+  DS_MAX_DEPTH: "4"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+.node:
+  image: node:20-bookworm-slim
+  cache:
+    key: npm-$CI_COMMIT_REF_SLUG
+    paths: [.cache/npm/]
+
+.python:
+  image: python:3.11-slim
+  cache:
+    key: pip-$CI_COMMIT_REF_SLUG
+    paths: [.cache/pip/]
+
+frontend_check:
+  extends: .node
+  stage: test
+  script:
+    - npm --prefix scenarios/unified ci
+    - npm --prefix scenarios/unified run typecheck
+    - npm --prefix scenarios/split/frontend ci
+    - npm --prefix scenarios/split/frontend run typecheck
+
+backend_check:
+  extends: .python
+  stage: test
+  script:
+    - pip install ruff==0.12.7
+    - ruff check scenarios
+    - python -m compileall -q scenarios
+
+bundle_validate:
+  extends: .python
+  stage: validate
+  before_script:
+    - sh scripts/install-databricks-cli.sh
+  script:
+    - databricks version
+    - databricks bundle validate -t dev
+  rules:
+    - if: $DATABRICKS_HOST && $DATABRICKS_CLIENT_ID && $DATABRICKS_CLIENT_SECRET
+
+build_spa:
+  extends: .node
+  stage: build
+  script:
+    - npm --prefix scenarios/unified ci
+    - npm --prefix scenarios/unified run build
+    - npm --prefix scenarios/split/frontend ci
+    - npm --prefix scenarios/split/frontend run build
+  artifacts:
+    paths:
+      - scenarios/unified/static/
+      - scenarios/split/frontend/static/
+    expire_in: 1 week
+
+build_scan_images:
+  image: docker:27-cli
+  stage: build
+  services: [docker:27-dind]
+  needs: [build_spa]
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - docker build -t "$UNIFIED_IMAGE" scenarios/unified
+    - docker build -t "$SPLIT_FRONTEND_IMAGE" scenarios/split/frontend
+    - docker build -t "$SPLIT_BACKEND_IMAGE" scenarios/split/backend
+    - docker push "$UNIFIED_IMAGE"
+    - docker push "$SPLIT_FRONTEND_IMAGE"
+    - docker push "$SPLIT_BACKEND_IMAGE"
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+# GitLab's included security jobs default to stage `test`; move them into the
+# explicit security gate while preserving analyzer-generated report artifacts.
+semgrep-sast:
+  stage: security
+
+gemnasium-dependency_scanning:
+  stage: security
+
+container_scanning:
+  stage: security
+  needs: [build_scan_images]
+  variables:
+    CS_IMAGE: $UNIFIED_IMAGE
+
+container_scanning_split_frontend:
+  extends: container_scanning
+  variables:
+    CS_IMAGE: $SPLIT_FRONTEND_IMAGE
+
+container_scanning_split_backend:
+  extends: container_scanning
+  variables:
+    CS_IMAGE: $SPLIT_BACKEND_IMAGE
+
+.deploy:
+  extends: .python
+  needs: [build_spa]
+  before_script:
+    - sh scripts/install-databricks-cli.sh
+    - databricks auth describe
+  script:
+    - databricks bundle validate -t "$BUNDLE_TARGET"
+    - databricks bundle deploy -t "$BUNDLE_TARGET" --auto-approve
+    - sh scripts/deploy-apps.sh "$DEPLOY_PATTERN" "$BUNDLE_TARGET"
+
+deploy_dev:
+  extends: .deploy
+  stage: deploy_dev
+  variables:
+    BUNDLE_TARGET: dev
+    DEPLOY_PATTERN: both
+  environment:
+    name: development
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+dast:
+  stage: dast
+  needs: [deploy_dev]
+  # Set DAST_WEBSITE to the dev app URL and grant the CI principal CAN_USE.
+  # The analyzer sends a short-lived OAuth token; no browser cookie is stored.
+  before_script:
+    - apk add --no-cache curl jq
+    - export DATABRICKS_TOKEN="$(curl --fail --silent --show-error -u "$DATABRICKS_CLIENT_ID:$DATABRICKS_CLIENT_SECRET" -d 'grant_type=client_credentials&scope=all-apis' "$DATABRICKS_HOST/oidc/v1/token" | jq -r .access_token)"
+    - export DAST_REQUEST_HEADERS="Authorization: Bearer $DATABRICKS_TOKEN"
+  variables:
+    DAST_FULL_SCAN_ENABLED: "true"
+    DAST_BROWSER_SCAN: "true"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $DAST_WEBSITE
+
+deploy_prod:
+  extends: .deploy
+  stage: deploy_prod
+  variables:
+    BUNDLE_TARGET: prod
+    DEPLOY_PATTERN: both
+  environment:
+    name: production
+  resource_group: production
+  when: manual
+  rules:
+    - if: $CI_COMMIT_TAG
