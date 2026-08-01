@@ -23,9 +23,9 @@ flowchart TB
 
   subgraph DBX[Azure Databricks serverless Apps]
     FG[Frontend Apps OAuth gateway]
-    FE[Frontend App runtime\nReact static files + FastAPI BFF]
+    FE[Frontend App runtime<br/>React static files + FastAPI BFF]
     BG[Backend Apps OAuth gateway]
-    BE[Backend App runtime\nFastAPI + Redis client]
+    BE[Backend App runtime<br/>FastAPI + Redis client]
     DS[(Databricks secret scope)]
   end
 

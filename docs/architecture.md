@@ -9,14 +9,14 @@ Azure Databricks places every App in managed serverless compute. The first reque
 ```mermaid
 flowchart LR
   U[Browser] -->|TLS + Databricks SSO| G[Databricks Apps gateway]
-  G -->|identity headers| A[One managed App runtime]
-  subgraph A[One managed App runtime]
+  subgraph APP[One managed App runtime]
     F[FastAPI / Uvicorn]
     R[React static files]
     API[/api routes]
     F --> R
     F --> API
   end
+  G -->|identity headers| APP
   API -->|user or app OAuth| D[(SQL / UC / Jobs / Models)]
 ```
 
@@ -34,11 +34,11 @@ Request flow: browser requests `/`; gateway authenticates; FastAPI returns `stat
 ```mermaid
 flowchart LR
   U[Browser] -->|TLS + SSO| GF[Apps gateway]
-  GF --> W[Frontend App runtime]
-  subgraph W[Frontend App]
+  subgraph WEB[Frontend App runtime]
     SPA[React static SPA]
     BFF[FastAPI BFF /api proxy]
   end
+  GF --> WEB
   BFF -->|Bearer: user OAuth or frontend SP OAuth| GB[Backend App gateway]
   GB --> API[FastAPI backend runtime]
   API --> D[(Databricks resources)]
