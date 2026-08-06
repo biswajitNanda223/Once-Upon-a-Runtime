@@ -366,7 +366,13 @@ Read **[Azure Managed Redis from Databricks Apps](docs/azure-managed-redis.md)**
 
 The production-oriented U2M example lives in [`scenarios/u2m-postgres`](scenarios/u2m-postgres). It contains a React/Node frontend App and a separate FastAPI/PostgreSQL backend App. The browser uses Databricks SSO, the frontend uses its App service principal for App-to-App OAuth, and the backend performs an atomic profile upsert.
 
-Read **[U2M identity with two Databricks Apps and PostgreSQL](docs/u2m-postgres.md)** for the HLD, LLD sequence, trusted-header boundary, SSO versus M2M explanation, dynamic route fix, same-origin proxy/CORS design, HMAC user-context contract, secret lifecycle, App Resource configuration, `app.yaml` versus `databricks.yml`, local development, GitLab CI/CD, and deployment checklist.
+Architecture and implementation documentation:
+
+- **[U2M implementation and operations guide](docs/u2m-postgres.md)**
+- **[U2M high-level design](docs/u2m-architecture/hld.md)**
+- **[U2M low-level design](docs/u2m-architecture/lld.md)**
+
+Together they cover trust boundaries, SSO versus M2M, dynamic routes, proxy/CORS behavior, signed user context, secret lifecycle, App Resources, PostgreSQL concurrency, `app.yaml` versus `databricks.yml`, GitLab CI/CD and deployment operations.
 
 ## Essential upstream references
 

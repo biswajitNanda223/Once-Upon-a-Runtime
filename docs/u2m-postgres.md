@@ -14,7 +14,16 @@ There are two different authentication hops. Keeping them distinct prevents the 
 
 Do not forward `X-Forwarded-Access-Token` merely to synchronize a profile. That token is relevant only when downstream Databricks APIs must execute with the individual user's permissions. The profile-sync call uses the frontend App identity instead.
 
-## High-level design
+## Architecture documents
+
+The architecture is maintained separately so system design and implementation detail can be reviewed independently:
+
+- **[High-level design](u2m-architecture/hld.md):** context, components, identities, trust boundaries, networking, data ownership, availability, environments and architectural decisions.
+- **[Low-level design](u2m-architecture/lld.md):** source layout, request sequence, routes, headers, OAuth/discovery, signed context, schemas, UPSERT algorithm, YAML mapping, errors and tests.
+
+The diagrams below provide a compact implementation-guide summary.
+
+## High-level summary
 
 ```mermaid
 flowchart LR
@@ -31,7 +40,7 @@ flowchart LR
 
 The React application calls only `/api/me`. This is a relative, same-origin route handled by Express. Express—not the browser—discovers the backend App URL and adds OAuth. Consequently browser CORS configuration is unnecessary in production.
 
-## Low-level request sequence
+## Low-level request summary
 
 ```mermaid
 sequenceDiagram
