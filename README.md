@@ -1,28 +1,54 @@
 # Once Upon a Runtime
 
-An end-to-end Azure Databricks Apps reference monorepo for a React + TypeScript frontend and FastAPI backend. It demonstrates both supported deployment shapes:
+> A production-oriented Azure Databricks Apps reference monorepo—from first React render to authenticated backend, data services, security scanning and controlled deployment.
 
-**A production story for Azure Databricks Apps.** **Once Upon a Runtime** follows a full-stack application from local development to secure production deployment: React, FastAPI, Databricks Apps, SSO, app-to-app proxying, GitLab CI/CD and Azure Managed Redis. The technical slug and Bundle name are `once-upon-a-runtime`; generated App names remain within Databricks’ 30-character limit.
+**Once Upon a Runtime** demonstrates React + TypeScript frontends, FastAPI/Node backends, Databricks SSO, secure App-to-App OAuth, PostgreSQL user synchronization, Azure Managed Redis, Declarative Automation Bundles and GitLab CI/CD.
 
-1. **Unified app** — one Databricks App runtime; FastAPI serves the built React SPA and the API.
-2. **Split apps** — two Databricks App runtimes; a frontend BFF serves React and securely proxies `/api` to a separate FastAPI app.
+The repository contains three runnable scenarios across the two practical Databricks Apps deployment shapes:
 
-> Updated and source-checked on **2026-08-01**. Databricks Apps use managed serverless runtimes. They do not deploy a Docker Compose stack or arbitrary customer Docker images. In this guide, “container” means the isolated managed runtime behind one Databricks App.
+| Scenario | Runtime shape | What it demonstrates | Start here |
+|---|---|---|---|
+| Unified | One App | FastAPI serves the React SPA and API | [`scenarios/unified`](scenarios/unified) |
+| Split with Redis | Two Apps | Frontend BFF proxies to FastAPI; backend uses Azure Managed Redis | [`scenarios/split`](scenarios/split) |
+| U2M with PostgreSQL | Two Apps | Databricks user SSO, App OAuth, signed user context and atomic profile UPSERT | [Implementation guide](docs/u2m-postgres.md) |
+
+The technical slug and Bundle name are `once-upon-a-runtime`; generated App names stay within Databricks’ 30-character limit.
+
+> Updated and source-checked on **2026-08-06**. Databricks Apps use managed serverless runtimes. They do not deploy a Docker Compose stack or arbitrary customer Docker images. In this guide, “container” means the isolated managed runtime behind one Databricks App.
+
+## Documentation
+
+- [Choose an architecture](#fast-decision)
+- [Run locally](#run-locally)
+- [Deploy with Databricks Bundles](#deploy-with-bundles)
+- [Understand SSO and App-to-App routing](#sso-in-one-paragraph)
+- [U2M implementation guide](docs/u2m-postgres.md)
+- [U2M high-level design](docs/u2m-architecture/hld.md)
+- [U2M low-level design](docs/u2m-architecture/lld.md)
+- [GitLab CI/CD and security](docs/cicd.md)
+- [Operations and troubleshooting](docs/operations.md)
 
 ## Repository map
 
 ```text
 once-upon-a-runtime/
-├── databricks.yml                 # Declarative Automation Bundle: both patterns
+├── databricks.yml                 # Bundle for all Apps and environments
 ├── .gitlab-ci.yml                 # test, security, package, deploy, DAST
 ├── scenarios/
 │   ├── unified/                   # React + FastAPI in one app runtime
-│   └── split/
-│       ├── frontend/              # React + thin FastAPI BFF/proxy
-│       └── backend/               # FastAPI API app
+│   ├── split/
+│   │   ├── frontend/              # React + thin FastAPI BFF/proxy
+│   │   └── backend/               # FastAPI API app
+│   └── u2m-postgres/
+│       ├── frontend/              # React + Node BFF and App OAuth
+│       └── backend/               # FastAPI + PostgreSQL profile API
 ├── scripts/                       # CI deployment and smoke-test helpers
 └── docs/
-    ├── architecture.md            # HLD, LLD, request flows and trade-offs
+    ├── architecture.md            # Unified/split architecture and trade-offs
+    ├── u2m-postgres.md            # U2M implementation and operations
+    ├── u2m-architecture/
+    │   ├── hld.md                 # U2M system and security architecture
+    │   └── lld.md                 # U2M protocols, schemas and algorithms
     ├── frontend-backend-connectivity.md # Layman guide to CORS and proxying
     ├── authentication.md          # SSO, user auth and app auth
     ├── azure-managed-redis.md     # Redis identity, secrets, networking and code
@@ -37,6 +63,7 @@ once-upon-a-runtime/
 |---|---|
 | Small/medium product, atomic releases, lowest latency | Unified |
 | Independent scaling/ownership/releases or reusable API | Split |
+| Persist each signed-in Databricks user in PostgreSQL | U2M with PostgreSQL |
 | Browser directly calls a second app URL | Avoid; use the frontend BFF proxy |
 | Public/anonymous application | Databricks Apps is not suitable; SSO cannot be bypassed |
 
@@ -45,6 +72,7 @@ once-upon-a-runtime/
 - Azure Databricks workspace with Apps enabled and a workspace URL such as `https://adb-...azuredatabricks.net`.
 - Databricks CLI supporting app resources in Bundles (use a current release; app Bundle resources were introduced in CLI 0.239.0).
 - Node.js 20+, npm 10+, Python 3.11+.
+- Docker for the optional local PostgreSQL environment; Azure Database for PostgreSQL Flexible Server for the production U2M scenario.
 - For production CI: a Databricks service principal using OAuth M2M, with workspace access and least-privilege app management permissions.
 - A Linux/amd64 GitLab Runner with Docker or Kubernetes executor for GitLab security analyzers. DAST and dependency vulnerability reporting require the applicable GitLab tier; see [CI/CD guide](docs/cicd.md).
 
@@ -58,6 +86,7 @@ python -m venv .venv
 pip install -r requirements-dev.txt
 npm --prefix scenarios/unified ci
 npm --prefix scenarios/split/frontend ci
+npm --prefix scenarios/u2m-postgres/frontend ci
 mkdir -p .databricks
 databricks bundle schema > .databricks/bundle-schema.json
 ```
@@ -76,6 +105,8 @@ pyright
 ruff check scenarios
 npm --prefix scenarios/unified run typecheck
 npm --prefix scenarios/split/frontend run typecheck
+npm --prefix scenarios/u2m-postgres/frontend run typecheck
+pytest -q scenarios/u2m-postgres/backend/tests
 ```
 
 ## Run locally
@@ -113,6 +144,14 @@ BACKEND_BASE_URL=http://localhost:8001 uvicorn proxy:app --reload --port 8000
 
 PowerShell activation is `.venv\Scripts\Activate.ps1`; set the local variable with `$env:BACKEND_BASE_URL='http://localhost:8001'`.
 
+U2M with PostgreSQL uses its own local database and a Node BFF. The complete copy/paste setup—including shared development signing secret, both processes and verification—is in [U2M local development](docs/u2m-postgres.md#local-development):
+
+```bash
+docker compose -f scenarios/u2m-postgres/docker-compose.local.yml up -d
+pip install -r scenarios/u2m-postgres/backend/requirements-test.txt
+npm --prefix scenarios/u2m-postgres/frontend ci
+```
+
 ## Deploy with Bundles
 
 Authenticate interactively for development:
@@ -130,9 +169,12 @@ databricks bundle run unified_app -t dev --profile launchpad-dev
 # or, backend first:
 databricks bundle run split_backend -t dev --profile launchpad-dev
 databricks bundle run split_frontend -t dev --profile launchpad-dev
+# or, U2M backend first after provisioning its PostgreSQL secrets:
+databricks bundle run u2m_backend -t dev --profile launchpad-dev
+databricks bundle run u2m_frontend -t dev --profile launchpad-dev
 ```
 
-`bundle deploy` creates/updates workspace resources and uploads source. `bundle run <app-key>` deploys the source to app compute and starts it. The GitLab jobs use the same sequence. Retrieve URLs with `databricks bundle summary -t dev`.
+`bundle deploy` creates/updates workspace resources and uploads source. `bundle run <app-key>` deploys the source to App compute and starts it. The GitLab jobs use the same sequence. Retrieve URLs with `databricks bundle summary -t dev`. Before deploying U2M, create `database-url` and `identity-hmac-secret` in the target secret scope as described in the [U2M deployment guide](docs/u2m-postgres.md#secrets-and-least-privilege).
 
 ## SSO in one paragraph
 

@@ -1,6 +1,7 @@
 -r scenarios/unified/requirements.txt
 -r scenarios/split/backend/requirements.txt
 -r scenarios/split/frontend/requirements.txt
+-r scenarios/u2m-postgres/backend/requirements-test.txt
 pyright==1.1.406
 ruff==0.12.7
 PyYAML==6.0.2
