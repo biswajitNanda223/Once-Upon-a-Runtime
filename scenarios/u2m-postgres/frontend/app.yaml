@@ -1,0 +1,10 @@
+command: ["npm", "run", "start"]
+env:
+  - name: NODE_ENV
+    value: production
+  - name: AUTH_MODE
+    value: databricks
+  - name: BACKEND_APP_NAME
+    valueFrom: u2m-backend-app
+  - name: INTERNAL_IDENTITY_HMAC_SECRET
+    valueFrom: u2m-identity-hmac

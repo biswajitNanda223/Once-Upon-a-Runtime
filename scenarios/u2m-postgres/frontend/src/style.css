@@ -1,0 +1,6 @@
+:root { font-family: Inter, system-ui, sans-serif; color: #f8fafc; background: #09090b; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at top, #3f1d66, #09090b 58%); }
+main { width: min(680px, calc(100vw - 4rem)); padding: 3rem; border: 1px solid #ffffff22; border-radius: 24px; background: #18181bcc; box-shadow: 0 24px 80px #0008; }
+h1 { font-size: clamp(2rem, 6vw, 4rem); margin: .3rem 0 1rem; }
+.eyebrow, dt { color: #c084fc; font-weight: 700; letter-spacing: .13em; }
+dl { display: grid; grid-template-columns: 10rem 1fr; gap: .8rem; margin-top: 2rem; } dd { margin: 0; overflow-wrap: anywhere; }

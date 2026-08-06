@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: runtime
+      POSTGRES_USER: runtime
+      POSTGRES_PASSWORD: local-only-password
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U runtime"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro

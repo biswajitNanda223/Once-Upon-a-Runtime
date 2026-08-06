@@ -43,6 +43,9 @@ frontend_check:
     - npm --prefix scenarios/unified run typecheck
     - npm --prefix scenarios/split/frontend ci
     - npm --prefix scenarios/split/frontend run typecheck
+    - npm --prefix scenarios/u2m-postgres/frontend ci
+    - npm --prefix scenarios/u2m-postgres/frontend run typecheck
+    - npm --prefix scenarios/u2m-postgres/frontend test
 
 backend_check:
   extends: .python
@@ -51,6 +54,8 @@ backend_check:
     - pip install ruff==0.12.7
     - ruff check scenarios
     - python -m compileall -q scenarios
+    - pip install -r scenarios/u2m-postgres/backend/requirements-test.txt
+    - pytest -q scenarios/u2m-postgres/backend/tests
 
 bundle_validate:
   extends: .python
@@ -71,10 +76,13 @@ build_spa:
     - npm --prefix scenarios/unified run build
     - npm --prefix scenarios/split/frontend ci
     - npm --prefix scenarios/split/frontend run build
+    - npm --prefix scenarios/u2m-postgres/frontend ci
+    - npm --prefix scenarios/u2m-postgres/frontend run build
   artifacts:
     paths:
       - scenarios/unified/static/
       - scenarios/split/frontend/static/
+      - scenarios/u2m-postgres/frontend/dist/
     expire_in: 1 week
 
 build_scan_images:
@@ -167,3 +175,15 @@ deploy_prod:
   when: manual
   rules:
     - if: $CI_COMMIT_TAG
+
+deploy_u2m_dev:
+  extends: .deploy
+  stage: deploy_dev
+  variables:
+    BUNDLE_TARGET: dev
+    DEPLOY_PATTERN: u2m
+  environment:
+    name: u2m-development
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

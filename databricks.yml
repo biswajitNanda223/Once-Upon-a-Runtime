@@ -8,6 +8,9 @@ variables:
   redis_secret_scope:
     description: Environment-specific Databricks secret scope for Redis connection identity
     default: once-upon-runtime-dev
+  u2m_secret_scope:
+    description: Scope containing the PostgreSQL URL and shared identity-signing secret
+    default: once-upon-runtime-u2m-dev
 
 resources:
   apps:
@@ -63,6 +66,44 @@ resources:
         - level: CAN_USE
           group_name: users
 
+    u2m_backend:
+      name: ${var.app_prefix}-u2m-api
+      description: Internal FastAPI profile API with atomic PostgreSQL upsert
+      source_code_path: ./scenarios/u2m-postgres/backend
+      resources:
+        - name: u2m-database-url
+          description: SQLAlchemy PostgreSQL connection URL
+          secret:
+            scope: ${var.u2m_secret_scope}
+            key: database-url
+            permission: READ
+        - name: u2m-identity-hmac
+          description: Defense-in-depth key for signing forwarded user context
+          secret:
+            scope: ${var.u2m_secret_scope}
+            key: identity-hmac-secret
+            permission: READ
+
+    u2m_frontend:
+      name: ${var.app_prefix}-u2m-web
+      description: React and Node BFF using Databricks SSO and App-to-App OAuth
+      source_code_path: ./scenarios/u2m-postgres/frontend
+      resources:
+        - name: u2m-backend-app
+          description: Backend App discoverable by the frontend service principal
+          app:
+            name: ${resources.apps.u2m_backend.name}
+            permission: CAN_USE
+        - name: u2m-identity-hmac
+          description: Defense-in-depth key for signing forwarded user context
+          secret:
+            scope: ${var.u2m_secret_scope}
+            key: identity-hmac-secret
+            permission: READ
+      permissions:
+        - level: CAN_USE
+          group_name: users
+
 targets:
   dev:
     mode: development
@@ -71,11 +112,13 @@ targets:
       # Override with BUNDLE_VAR_app_prefix for parallel developer deployments.
       app_prefix: runtime-dev
       redis_secret_scope: once-upon-runtime-dev
+      u2m_secret_scope: once-upon-runtime-u2m-dev
 
   prod:
     mode: production
     variables:
       app_prefix: once-upon-a-runtime
       redis_secret_scope: once-upon-runtime-prod
+      u2m_secret_scope: once-upon-runtime-u2m-prod
     workspace:
       root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}

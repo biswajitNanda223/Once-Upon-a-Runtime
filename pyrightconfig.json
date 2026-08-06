@@ -3,7 +3,9 @@
   "include": [
     "scenarios/unified/server",
     "scenarios/split/backend/app",
-    "scenarios/split/frontend/proxy.py"
+    "scenarios/split/frontend/proxy.py",
+    "scenarios/u2m-postgres/backend/app",
+    "scenarios/u2m-postgres/backend/tests"
   ],
   "exclude": [
     "**/node_modules",
@@ -21,6 +23,9 @@
     },
     {
       "root": "scenarios/split/frontend"
+    },
+    {
+      "root": "scenarios/u2m-postgres/backend"
     }
   ]
 }

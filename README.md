@@ -362,6 +362,12 @@ The backend prefixes keys with `runtime:`, validates key names, enforces a TTL, 
 
 Read **[Azure Managed Redis from Databricks Apps](docs/azure-managed-redis.md)** for Azure provisioning, service-principal roles, NCC/Private Link, complete YAML, code behavior, rotation and troubleshooting.
 
+## U2M profile synchronization with PostgreSQL
+
+The production-oriented U2M example lives in [`scenarios/u2m-postgres`](scenarios/u2m-postgres). It contains a React/Node frontend App and a separate FastAPI/PostgreSQL backend App. The browser uses Databricks SSO, the frontend uses its App service principal for App-to-App OAuth, and the backend performs an atomic profile upsert.
+
+Read **[U2M identity with two Databricks Apps and PostgreSQL](docs/u2m-postgres.md)** for the HLD, LLD sequence, trusted-header boundary, SSO versus M2M explanation, dynamic route fix, same-origin proxy/CORS design, HMAC user-context contract, secret lifecycle, App Resource configuration, `app.yaml` versus `databricks.yml`, local development, GitLab CI/CD, and deployment checklist.
+
 ## Essential upstream references
 
 - [Databricks Apps deployment and mixed Node/Python build logic](https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-apps/deploy)

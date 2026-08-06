@@ -1,0 +1,8 @@
+command: ["uvicorn", "app.main:app"]
+env:
+  - name: AUTH_MODE
+    value: databricks
+  - name: DATABASE_URL
+    valueFrom: u2m-database-url
+  - name: INTERNAL_IDENTITY_HMAC_SECRET
+    valueFrom: u2m-identity-hmac
