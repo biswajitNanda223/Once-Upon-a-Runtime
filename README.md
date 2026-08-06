@@ -25,6 +25,7 @@ The technical slug and Bundle name are `once-upon-a-runtime`; generated App name
 - [U2M implementation guide](docs/u2m-postgres.md)
 - [U2M high-level design](docs/u2m-architecture/hld.md)
 - [U2M low-level design](docs/u2m-architecture/lld.md)
+- [Official U2M and App-to-App references](docs/u2m-architecture/official-references.md)
 - [GitLab CI/CD and security](docs/cicd.md)
 - [Operations and troubleshooting](docs/operations.md)
 
@@ -174,7 +175,7 @@ databricks bundle run u2m_backend -t dev --profile launchpad-dev
 databricks bundle run u2m_frontend -t dev --profile launchpad-dev
 ```
 
-`bundle deploy` creates/updates workspace resources and uploads source. `bundle run <app-key>` deploys the source to App compute and starts it. The GitLab jobs use the same sequence. Retrieve URLs with `databricks bundle summary -t dev`. Before deploying U2M, create `database-url` and `identity-hmac-secret` in the target secret scope as described in the [U2M deployment guide](docs/u2m-postgres.md#secrets-and-least-privilege).
+`bundle deploy` creates/updates workspace resources and uploads source. `bundle run <app-key>` deploys the source to App compute and starts it. The GitLab jobs use the same sequence. Retrieve URLs with `databricks bundle summary -t dev`. Before deploying U2M, create `database-url` in the backend-only database scope and `identity-hmac-secret` in the separate shared signing scope as described in the [U2M deployment guide](docs/u2m-postgres.md#secrets-and-least-privilege).
 
 ## SSO in one paragraph
 
@@ -413,6 +414,7 @@ Architecture and implementation documentation:
 - **[U2M implementation and operations guide](docs/u2m-postgres.md)**
 - **[U2M high-level design](docs/u2m-architecture/hld.md)**
 - **[U2M low-level design](docs/u2m-architecture/lld.md)**
+- **[Official U2M and App-to-App reference catalog](docs/u2m-architecture/official-references.md)**
 
 Together they cover trust boundaries, SSO versus M2M, dynamic routes, proxy/CORS behavior, signed user context, secret lifecycle, App Resources, PostgreSQL concurrency, `app.yaml` versus `databricks.yml`, GitLab CI/CD and deployment operations.
 

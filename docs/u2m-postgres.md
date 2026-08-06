@@ -20,6 +20,7 @@ The architecture is maintained separately so system design and implementation de
 
 - **[High-level design](u2m-architecture/hld.md):** context, components, identities, trust boundaries, networking, data ownership, availability, environments and architectural decisions.
 - **[Low-level design](u2m-architecture/lld.md):** source layout, request sequence, routes, headers, OAuth/discovery, signed context, schemas, UPSERT algorithm, YAML mapping, errors and tests.
+- **[Official U2M reference catalog](u2m-architecture/official-references.md):** verified Microsoft/Azure Databricks sources, feature-status notes and evidence-to-code mapping.
 
 The diagrams below provide a compact implementation-guide summary.
 
@@ -33,9 +34,9 @@ flowchart LR
   BFF -->|OAuth as frontend App SP| BACK_GATE[Backend App gateway]
   BACK_GATE -->|CAN_USE passed| API[FastAPI profile API]
   API -->|TLS connection| PG[(PostgreSQL)]
-  SCOPE[Databricks secret scope] -. database URL .-> API
-  SCOPE -. signing secret .-> API
-  SCOPE -. signing secret .-> BFF
+  DB_SCOPE[Backend-only database secret scope] -. database URL .-> API
+  SIGN_SCOPE[Shared signing secret scope] -. signing secret .-> API
+  SIGN_SCOPE -. signing secret .-> BFF
 ```
 
 The React application calls only `/api/me`. This is a relative, same-origin route handled by Express. Express—not the browser—discovers the backend App URL and adds OAuth. Consequently browser CORS configuration is unnecessary in production.
@@ -135,15 +136,17 @@ postgresql+psycopg://app_runtime:ENCODED_PASSWORD@server.postgres.database.azure
 
 ## Secrets and least privilege
 
-Create different scopes and values per environment. Generate the HMAC using a cryptographic random generator; both Apps need the same value for a coordinated rotation.
+Create different scopes and values per environment. Databricks secret ACLs apply at the **scope level**, so the backend database URL and shared signing key must not share a scope. Generate the HMAC using a cryptographic random generator; both Apps need the same value for a coordinated rotation.
 
 ```bash
-databricks secrets create-scope once-upon-runtime-u2m-dev
-databricks secrets put-secret once-upon-runtime-u2m-dev database-url
-databricks secrets put-secret once-upon-runtime-u2m-dev identity-hmac-secret
+databricks secrets create-scope once-upon-runtime-u2m-db-dev
+databricks secrets put-secret once-upon-runtime-u2m-db-dev database-url
+
+databricks secrets create-scope once-upon-runtime-u2m-shared-dev
+databricks secrets put-secret once-upon-runtime-u2m-shared-dev identity-hmac-secret
 ```
 
-The bundle gives the database URL only to the backend. It gives the HMAC secret to both server processes. Neither value is prefixed `VITE_`, returned from an endpoint, stored in Git, or available to React. Use a separate production scope, database role, and signing key. Rotate the signing key by supporting current/next keys during a controlled rollout if zero downtime is required.
+The bundle gives the database scope only to the backend. It gives the signing-only scope to both server processes. Neither value is prefixed `VITE_`, returned from an endpoint, stored in Git, or available to React. Create corresponding `-db-prod` and `-shared-prod` scopes with a separate production database role and signing key. Rotate the signing key by supporting current/next keys during a controlled rollout if zero downtime is required.
 
 ## Local development
 
@@ -203,6 +206,8 @@ GitLab uses one non-human Databricks service principal through protected, masked
 The pipeline validates TypeScript/Python, runs tests, builds React, runs GitLab SAST and dependency scanning, scans the existing container examples, validates the bundle, deploys development, performs authenticated DAST when `DAST_WEBSITE` is configured, and requires a manual tagged production promotion. `deploy_u2m_dev` is manual until its database and secrets are provisioned. Production secrets are never copied from development.
 
 ## Official references
+
+Start with the dedicated **[official U2M and App-to-App reference catalog](u2m-architecture/official-references.md)**. It explains which official page supports each identity hop and where that decision appears in this repository.
 
 - [Databricks Apps authentication and user authorization](https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-apps/auth)
 - [Databricks Apps HTTP identity headers](https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-apps/http-headers)

@@ -4,7 +4,7 @@
 
 This document describes the system-level architecture for the U2M profile synchronization scenario in [`scenarios/u2m-postgres`](../../scenarios/u2m-postgres). It covers component boundaries, identities, trust zones, network paths, deployment topology, data ownership, security controls, availability and major design decisions.
 
-Implementation details, request schemas and algorithms are in the companion [low-level design](lld.md). Deployment commands and operations are in the [implementation guide](../u2m-postgres.md).
+Implementation details, request schemas and algorithms are in the companion [low-level design](lld.md). Deployment commands and operations are in the [implementation guide](../u2m-postgres.md). The design-to-source evidence is collected in the [official U2M reference catalog](official-references.md).
 
 ## 2. Business outcome
 
@@ -67,7 +67,8 @@ flowchart LR
     POSTGRES[(PostgreSQL users table)]
   end
 
-  SECRET_SCOPE[Databricks secret scope]
+  DB_SECRET_SCOPE[Backend-only DB secret scope]
+  SHARED_SECRET_SCOPE[Shared signing secret scope]
 
   BROWSER -->|HTTPS and Databricks session| FRONT_PROXY
   FRONT_PROXY -->|trusted identity headers| NODE_BFF
@@ -76,8 +77,9 @@ flowchart LR
   FRONT_SP -. authenticates .-> BACK_PROXY
   BACK_PROXY -->|authorized /api request| FASTAPI
   FASTAPI -->|TLS, runtime DB role| POSTGRES
-  SECRET_SCOPE -. HMAC valueFrom .-> NODE_BFF
-  SECRET_SCOPE -. HMAC and DB URL valueFrom .-> FASTAPI
+  SHARED_SECRET_SCOPE -. HMAC valueFrom .-> NODE_BFF
+  SHARED_SECRET_SCOPE -. HMAC valueFrom .-> FASTAPI
+  DB_SECRET_SCOPE -. database URL valueFrom .-> FASTAPI
   BACK_SP -. owns backend runtime permissions .-> FASTAPI
 ```
 
@@ -199,7 +201,8 @@ Development and production use different App names, secret scopes, PostgreSQL se
 | Concern | Development | Production |
 |---|---|---|
 | Bundle target | `dev` | `prod` |
-| Secret scope | `once-upon-runtime-u2m-dev` | `once-upon-runtime-u2m-prod` |
+| Database secret scope | `once-upon-runtime-u2m-db-dev` | `once-upon-runtime-u2m-db-prod` |
+| Shared signing scope | `once-upon-runtime-u2m-shared-dev` | `once-upon-runtime-u2m-shared-prod` |
 | Database | Isolated non-production database | Managed production database |
 | App permissions | Developer group | Approved user groups |
 | Deployment | Manual U2M job after provisioning | Protected tagged/manual promotion |
@@ -219,6 +222,8 @@ Log security-relevant outcomes with a request ID: identity missing, signature in
 | Two Apps | Independent permissions and scaling | One runtime, which is simpler but has a larger shared failure/trust boundary |
 
 ## 14. Official references
+
+For the complete, categorized source map with applicability notes and repository evidence, read **[Official references: Databricks Apps U2M and App-to-App authentication](official-references.md)**.
 
 - [Databricks Apps authentication](https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-apps/auth)
 - [HTTP identity headers](https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-apps/http-headers)

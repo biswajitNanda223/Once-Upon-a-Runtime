@@ -4,7 +4,7 @@
 
 This document specifies the implementation of the U2M split-App profile flow: runtime processes, routes, trusted headers, internal protocol, OAuth and discovery, database schema/upsert, configuration mappings, error behavior and tests.
 
-Read the [high-level design](hld.md) first for system boundaries and architectural decisions. Use the [implementation guide](../u2m-postgres.md) for provisioning and deployment commands.
+Read the [high-level design](hld.md) first for system boundaries and architectural decisions. Use the [implementation guide](../u2m-postgres.md) for provisioning and deployment commands. Use the [official U2M reference catalog](official-references.md) to trace each protocol and configuration decision to current Microsoft/Azure Databricks documentation.
 
 ## 2. Source layout
 
@@ -342,7 +342,7 @@ Use the local Compose PostgreSQL for developer integration tests. CI should prov
 
 1. Provision PostgreSQL networking, database, migration owner and runtime role.
 2. Execute `001_create_users.sql` using the migration identity.
-3. Create the environment-specific Databricks secret scope and values.
+3. Create the environment-specific backend-only database scope and shared signing-only scope, then populate their values.
 4. Validate and deploy the bundle.
 5. Start/deploy the backend App first.
 6. Start/deploy the frontend App.
@@ -350,6 +350,8 @@ Use the local Compose PostgreSQL for developer integration tests. CI should prov
 8. Run positive, negative, dynamic-route and concurrency smoke tests.
 
 ## 17. Official references
+
+The full categorized bibliography, U2M-versus-M2M applicability guidance and evidence-to-code mapping is in **[Official references: Databricks Apps U2M and App-to-App authentication](official-references.md)**.
 
 - [Databricks Apps runtime and `app.yaml`](https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-apps/app-runtime)
 - [Databricks Apps system environment](https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-apps/system-env)
